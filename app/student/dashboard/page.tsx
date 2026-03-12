@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Nav from '@/components/layout/Nav'
+import DashboardClient from '@/components/dashboard/DashboardClient'
 import type { Module, Lesson, LessonProgress } from '@/types'
 
 export default async function Dashboard() {
@@ -61,6 +62,14 @@ export default async function Dashboard() {
             <div className="progress-fill" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
+
+        {/* Onboarding + Próximo curso */}
+        <DashboardClient
+          showOnboarding={!profile?.onboarding_completed}
+          progressPct={progressPct}
+          completedCount={completedCount}
+          totalCount={totalCount}
+        />
 
         {/* Módulos y lecciones */}
         {(modules || []).map((mod: Module, mi: number) => {
