@@ -20,6 +20,8 @@ function ContentRenderer({ blocks }: { blocks: ContentBlock[] }) {
   return (
     <div className="lesson-body">
       {blocks.map((block, i) => {
+
+        // Texto básico
         if (block.type === 'intro') return (
           <p key={i} className="lesson-intro">{block.text}</p>
         )
@@ -29,30 +31,170 @@ function ContentRenderer({ blocks }: { blocks: ContentBlock[] }) {
         if (block.type === 'paragraph') return (
           <p key={i} className="lesson-paragraph">{block.text}</p>
         )
-        if (block.type === 'highlight') return (
-          <div key={i} className="lesson-highlight">
-            <p className="author">{block.author} · {block.year}</p>
-            <p className="highlight-text">{block.text}</p>
-          </div>
-        )
         if (block.type === 'quote') return (
           <blockquote key={i} style={{
-            borderLeft: '2px solid var(--accent)',
-            paddingLeft: '1.5rem',
-            margin: '2rem 0',
-            fontFamily: 'var(--font-serif)',
-            fontStyle: 'italic',
-            color: 'var(--text-secondary)',
+            borderLeft: '2px solid var(--accent)', paddingLeft: '1.5rem',
+            margin: '2rem 0', fontFamily: 'var(--font-serif)',
+            fontStyle: 'italic', color: 'var(--text-secondary)',
           }}>
             <p>{block.text}</p>
             {block.author && <cite style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'normal' }}>— {block.author}</cite>}
           </blockquote>
         )
+        if (block.type === 'highlight') return (
+          <div key={i} className="lesson-highlight">
+            <p className="author">{block.author}{block.year ? ` · ${block.year}` : ''}</p>
+            <p className="highlight-text">{block.text}</p>
+          </div>
+        )
+
+        // Hero — imagen grande a ancho completo con título encima
+        if (block.type === 'hero') return (
+          <div key={i} style={{ margin: '2.5rem -1.5rem', position: 'relative' }}>
+            <img
+              src={block.src}
+              alt={block.alt || ''}
+              style={{ width: '100%', maxHeight: '480px', objectFit: 'cover', display: 'block' }}
+            />
+            {(block.caption || block.credit) && (
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'right', padding: '0.4rem 1.5rem 0', fontStyle: 'italic' }}>
+                {block.caption}{block.caption && block.credit ? ' · ' : ''}{block.credit}
+              </p>
+            )}
+          </div>
+        )
+
+        // Image — imagen con tamaño configurable
+        if (block.type === 'image') {
+          const sizes: Record<string, string> = { small: '320px', medium: '560px', full: '100%' }
+          const maxW = sizes[block.size || 'medium'] || '560px'
+          return (
+            <figure key={i} style={{ margin: '2rem auto', maxWidth: maxW }}>
+              <img
+                src={block.src}
+                alt={block.alt || ''}
+                style={{ width: '100%', borderRadius: '6px', display: 'block' }}
+              />
+              {(block.caption || block.credit) && (
+                <figcaption style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.5rem', fontStyle: 'italic', textAlign: 'center' }}>
+                  {block.caption}{block.caption && block.credit ? ' · ' : ''}{block.credit}
+                </figcaption>
+              )}
+            </figure>
+          )
+        }
+
+        // Gallery — cuadrícula de imágenes
+        if (block.type === 'gallery') return (
+          <div key={i} style={{ margin: '2rem 0' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${Math.min(block.images?.length || 2, 3)}, 1fr)`,
+              gap: '0.5rem',
+            }}>
+              {(block.images || []).map((img: any, ii: number) => (
+                <figure key={ii} style={{ margin: 0 }}>
+                  <img
+                    src={img.src}
+                    alt={img.alt || ''}
+                    style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: '4px', display: 'block' }}
+                  />
+                  {img.caption && (
+                    <figcaption style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.3rem', fontStyle: 'italic', textAlign: 'center' }}>
+                      {img.caption}
+                    </figcaption>
+                  )}
+                </figure>
+              ))}
+            </div>
+            {block.caption && (
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.75rem', textAlign: 'center', fontStyle: 'italic' }}>
+                {block.caption}
+              </p>
+            )}
+          </div>
+        )
+
+        // Author — tarjeta de autor destacado
+        if (block.type === 'author') return (
+          <div key={i} style={{
+            margin: '2.5rem 0',
+            background: 'var(--bg-card)',
+            border: '0.5px solid var(--border-strong)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+          }}>
+            {block.src && (
+              <img
+                src={block.src}
+                alt={block.name || ''}
+                style={{ width: '100%', maxHeight: '280px', objectFit: 'cover', objectPosition: block.position || 'center top', display: 'block' }}
+              />
+            )}
+            <div style={{ padding: '1.5rem' }}>
+              <p className="accent-label" style={{ marginBottom: '0.25rem' }}>autor destacado</p>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.3rem', marginBottom: '0.2rem', color: 'var(--text-primary)' }}>
+                {block.name}
+              </h3>
+              {block.years && (
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>{block.years}</p>
+              )}
+              {block.text && (
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>{block.text}</p>
+              )}
+              {block.quote && (
+                <blockquote style={{
+                  borderLeft: '2px solid var(--accent)', paddingLeft: '1rem',
+                  marginTop: '1rem', fontFamily: 'var(--font-serif)',
+                  fontStyle: 'italic', color: 'var(--text-secondary)', fontSize: '0.95rem',
+                }}>
+                  "{block.quote}"
+                </blockquote>
+              )}
+            </div>
+          </div>
+        )
+
+        // Case study — bloque marcado con imagen opcional + texto
+        if (block.type === 'case_study') return (
+          <div key={i} style={{
+            margin: '2.5rem 0',
+            background: 'var(--accent-dim)',
+            border: '0.5px solid var(--accent)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+          }}>
+            {block.src && (
+              <img
+                src={block.src}
+                alt={block.alt || ''}
+                style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', display: 'block' }}
+              />
+            )}
+            <div style={{ padding: '1.5rem' }}>
+              <p className="accent-label" style={{ marginBottom: '0.5rem' }}>estudio de caso</p>
+              {block.title && (
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
+                  {block.title}
+                </h3>
+              )}
+              {block.text && (
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>{block.text}</p>
+              )}
+              {block.caption && (
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.75rem', fontStyle: 'italic' }}>{block.caption}</p>
+              )}
+            </div>
+          </div>
+        )
+
         return null
       })}
     </div>
   )
 }
+
+
 
 function QuizSection({ questions, lessonId, existingResult, userId, onComplete }: {
   questions: QuizQuestion[]

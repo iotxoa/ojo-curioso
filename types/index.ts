@@ -25,9 +25,13 @@ export type ContentBlock =
   | { type: 'intro'; text: string }
   | { type: 'paragraph'; text: string }
   | { type: 'section_title'; text: string }
-  | { type: 'highlight'; author: string; year: string; text: string }
-  | { type: 'image'; url: string; caption: string }
-  | { type: 'quote'; text: string; author: string }
+  | { type: 'highlight'; author?: string; year?: string; text: string }
+  | { type: 'quote'; text: string; author?: string }
+  | { type: 'hero'; src: string; alt?: string; caption?: string; credit?: string }
+  | { type: 'image'; src: string; alt?: string; caption?: string; credit?: string; size?: 'small' | 'medium' | 'full' }
+  | { type: 'gallery'; images: { src: string; alt?: string; caption?: string }[]; caption?: string }
+  | { type: 'author'; name: string; src?: string; years?: string; text?: string; quote?: string; position?: string }
+  | { type: 'case_study'; title?: string; src?: string; alt?: string; text: string; caption?: string }
 
 export interface Lesson {
   id: number
