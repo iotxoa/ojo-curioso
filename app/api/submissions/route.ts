@@ -1,45 +1,110 @@
+// app/api/submissions/route.ts
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json()
-  const { exercise_id, text_content } = body
+  const body = await req.json()
+  const { exercise_id, content, file_urls } = body
 
-  const { data, error } = await supabase.from('submissions').insert({
-    user_id: user.id,
-    exercise_id,
-    text_content,
-    status: 'submitted',
-  }).select().single()
+  // Upsert — si ya existe una entrega para este ejercicio, actualizarla
+  const { data: existing } = await supabase
+    .from('submissions')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('exercise_id', exercise_id)
+    .single()
 
-  if (error) return NextResponse.json({ error }, { status: 500 })
-
-  // Notificación por email (opcional — requiere RESEND_API_KEY)
-  if (process.env.RESEND_API_KEY && process.env.ADMIN_EMAIL) {
-    try {
-      const { Resend } = await import('resend')
-      const resend = new Resend(process.env.RESEND_API_KEY)
-      const { data: profile } = await supabase.from('profiles').select('full_name, email').eq('id', user.id).single()
-      const { data: exercise } = await supabase.from('exercises').select('title').eq('id', exercise_id).single()
-
-      await resend.emails.send({
-        from: 'El ojo curioso <noreply@tudominio.com>',
-        to: process.env.ADMIN_EMAIL,
-        subject: `Nueva entrega: ${exercise?.title}`,
-        html: `
-          <p><strong>${profile?.full_name || profile?.email}</strong> ha entregado el ejercicio <strong>${exercise?.title}</strong>.</p>
-          <blockquote>${text_content?.substring(0, 300)}${text_content?.length > 300 ? '...' : ''}</blockquote>
-          <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin">Ver en el panel de admin</a></p>
-        `,
+  let result
+  if (existing) {
+    const { data, error } = await supabase
+      .from('submissions')
+      .update({
+        text_content: content,       // nombre real en BBDD
+        file_urls: file_urls || [],
+        submitted_at: new Date().toISOString(),
+        status: 'submitted',
       })
-    } catch (e) {
-      console.error('Email error:', e)
-    }
+      .eq('id', existing.id)
+      .select()
+      .single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    result = data
+  } else {
+    const { data, error } = await supabase
+      .from('submissions')
+      .insert({
+        user_id: user.id,
+        exercise_id,
+        text_content: content,       // nombre real en BBDD
+        file_urls: file_urls || [],
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    result = data
   }
 
-  return NextResponse.json({ data })
+  // Notificar al admin por email
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', user.id)
+      .single()
+
+    const { data: exercise } = await supabase
+      .from('exercises')
+      .select('title, lesson_id, lessons(title, slug)')
+      .eq('id', exercise_id)
+      .single()
+
+    await fetch(`${req.nextUrl.origin}/api/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'new_submission',
+        student_name: profile?.full_name,
+        student_email: profile?.email,
+        exercise_title: exercise?.title,
+        lesson_title: (exercise?.lessons as any)?.title,
+        lesson_slug: (exercise?.lessons as any)?.slug,
+        submission_id: result.id,
+      }),
+    })
+  } catch (e) {
+    // No bloquear si el email falla
+    console.error('Email notification failed:', e)
+  }
+
+  return NextResponse.json({ submission: result })
+}
+
+export async function GET(req: NextRequest) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { searchParams } = new URL(req.url)
+  const exercise_id = searchParams.get('exercise_id')
+
+  if (!exercise_id) return NextResponse.json({ error: 'exercise_id required' }, { status: 400 })
+
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('exercise_id', exercise_id)
+    .single()
+
+  if (error && error.code !== 'PGRST116') {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ submission: data || null })
 }

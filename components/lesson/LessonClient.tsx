@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, CheckCircle, Clock } from 'lucide-react'
 import type { Lesson, QuizQuestion, Exercise, LessonProgress, QuizResult, Submission, ContentBlock } from '@/types'
 import Link from 'next/link'
+import { ExerciseBlock } from '@/components/lesson/ExerciseBlock'  // ← NUEVO
 
 interface Props {
   lesson: Lesson
@@ -194,8 +195,6 @@ function ContentRenderer({ blocks }: { blocks: ContentBlock[] }) {
   )
 }
 
-
-
 function QuizSection({ questions, lessonId, existingResult, userId, onComplete }: {
   questions: QuizQuestion[]
   lessonId: number
@@ -313,89 +312,7 @@ function QuizSection({ questions, lessonId, existingResult, userId, onComplete }
   )
 }
 
-function ExerciseSection({ exercises, submissions, userId }: {
-  exercises: Exercise[]
-  submissions: Submission[]
-  userId: string
-}) {
-  const [texts, setTexts] = useState<Record<number, string>>({})
-  const [loading, setLoading] = useState<Record<number, boolean>>({})
-  const [sent, setSent] = useState<Record<number, boolean>>({})
-  const supabase = createClient()
-
-  async function handleSubmit(exerciseId: number) {
-    const text = texts[exerciseId]
-    if (!text?.trim()) return
-    setLoading(prev => ({ ...prev, [exerciseId]: true }))
-    await supabase.from('submissions').insert({
-      user_id: userId,
-      exercise_id: exerciseId,
-      text_content: text,
-      status: 'submitted',
-    })
-    setSent(prev => ({ ...prev, [exerciseId]: true }))
-    setLoading(prev => ({ ...prev, [exerciseId]: false }))
-  }
-
-  return (
-    <div style={{ marginTop: '3rem' }}>
-      <div className="divider" style={{ marginBottom: '2.5rem' }} />
-      <p className="accent-label" style={{ marginBottom: '0.5rem' }}>ejercicio</p>
-
-      {exercises.map(ex => {
-        const existing = submissions.find(s => s.exercise_id === ex.id)
-        const isSent = sent[ex.id] || !!existing
-
-        return (
-          <div key={ex.id}>
-            <h2 style={{ fontSize: '1.3rem', marginBottom: '0.75rem' }}>{ex.title}</h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: 1.7 }}>
-              {ex.description}
-            </p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-              <Clock size={12} style={{ display: 'inline', marginRight: '0.3rem', verticalAlign: 'middle' }} />
-              {ex.due_note}
-            </p>
-
-            {isSent ? (
-              <div className="card" style={{ padding: '1.25rem', borderColor: 'var(--success)', background: 'rgba(74,138,90,0.08)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <CheckCircle size={16} style={{ color: '#6abf6a' }} />
-                  <p style={{ fontSize: '0.9rem', color: '#6abf6a' }}>
-                    {existing?.status === 'reviewed' ? 'Ejercicio revisado' : 'Ejercicio entregado — te llega el feedback pronto'}
-                  </p>
-                </div>
-                {existing?.admin_feedback && (
-                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '0.5px solid var(--border)' }}>
-                    <p className="accent-label" style={{ marginBottom: '0.4rem' }}>Feedback</p>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{existing.admin_feedback}</p>
-                    {existing.admin_grade && (
-                      <span className="badge badge-active" style={{ marginTop: '0.5rem' }}>{existing.admin_grade}</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
-                <textarea
-                  className="input"
-                  placeholder="Escribe aquí tu respuesta..."
-                  value={texts[ex.id] || ''}
-                  onChange={e => setTexts(prev => ({ ...prev, [ex.id]: e.target.value }))}
-                />
-                <button className="btn-primary" style={{ marginTop: '1rem' }}
-                  onClick={() => handleSubmit(ex.id)}
-                  disabled={loading[ex.id] || !texts[ex.id]?.trim()}>
-                  {loading[ex.id] ? 'Enviando...' : 'Entregar ejercicio'}
-                </button>
-              </>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
+// ─── ExerciseSection eliminada y reemplazada por ExerciseBlock ───────────────
 
 export default function LessonClient({ lesson, questions, exercises, progress, quizResult, submissions, userId }: Props) {
   const supabase = createClient()
@@ -458,14 +375,16 @@ export default function LessonClient({ lesson, questions, exercises, progress, q
         />
       )}
 
-      {/* Exercise */}
-      {exercises.length > 0 && (
-        <ExerciseSection
-          exercises={exercises}
-          submissions={submissions}
+      {/* Ejercicios — nuevo sistema con subida de archivos, editor rico y feedback */}
+      {exercises.length > 0 && exercises.map(exercise => (
+        <ExerciseBlock
+          key={exercise.id}
+          exercise={exercise}
+          lessonTitle={lesson.title}
+          lessonSlug={lesson.slug}
           userId={userId}
         />
-      )}
+      ))}
 
       {/* Bottom padding */}
       <div style={{ height: '4rem' }} />

@@ -87,12 +87,28 @@ export interface Submission {
   user_id: string
   exercise_id: number
   text_content: string | null
-  file_urls: string[]
+  file_urls: SubmissionFile[]
   status: 'submitted' | 'reviewed' | 'needs_revision'
   admin_feedback: string | null
   admin_grade: string | null
+  feedback_html?: string | null
+  annotated_images?: AnnotatedImage[]
   submitted_at: string
   reviewed_at: string | null
   exercise?: Exercise
   profile?: Profile
+}
+
+export interface SubmissionFile {
+  name: string
+  url: string
+  path: string
+  type: string
+  size: number
+}
+
+export interface AnnotatedImage {
+  original_url: string
+  annotated_url: string
+  caption?: string
 }
