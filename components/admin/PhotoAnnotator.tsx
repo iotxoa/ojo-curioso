@@ -324,11 +324,11 @@ export function PhotoAnnotator({ imageUrl, imageIndex, submissionId, existingAnn
         }
         .action-btn:hover { background: rgba(232,139,106,0.1); color: #E88B6A; }
         .canvas-wrapper {
-          overflow: auto; max-height: 500px;
+          overflow: auto; max-height: 80vh;
           cursor: crosshair;
         }
         .ann-canvas {
-          display: block; max-width: 100%; height: auto;
+          display: block; width: 100%; height: auto;
         }
         .ann-footer {
           padding: 12px 16px; background: #1A1208;
