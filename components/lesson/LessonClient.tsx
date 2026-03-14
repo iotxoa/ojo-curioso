@@ -318,21 +318,21 @@ export default function LessonClient({ lesson, questions, exercises, progress, q
   const supabase = createClient()
   const router = useRouter()
 
-  async function markInProgress() {
-    if (progress) return
-    await supabase.from('lesson_progress').upsert({
-      user_id: userId, lesson_id: lesson.id,
-      status: 'in_progress', started_at: new Date().toISOString(),
-    })
-  }
+async function markInProgress() {
+  if (progress) return
+  await supabase.from('lesson_progress').upsert({
+    user_id: userId, lesson_id: lesson.id,
+    status: 'in_progress', started_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,lesson_id' })  // ← añadir esto
+}
 
-  async function markCompleted() {
-    await supabase.from('lesson_progress').upsert({
-      user_id: userId, lesson_id: lesson.id,
-      status: 'completed', completed_at: new Date().toISOString(),
-    })
-    router.refresh()
-  }
+async function markCompleted() {
+  await supabase.from('lesson_progress').upsert({
+    user_id: userId, lesson_id: lesson.id,
+    status: 'completed', completed_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,lesson_id' })  // ← añadir esto
+  router.refresh()
+}
 
   // Marcar como en progreso al ver
   useState(() => { markInProgress() })
