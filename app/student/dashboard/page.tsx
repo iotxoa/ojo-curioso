@@ -1,8 +1,10 @@
+// app/student/dashboard/page.tsx
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Nav from '@/components/layout/Nav'
 import DashboardClient from '@/components/dashboard/DashboardClient'
+import { FeedbackBanner } from '@/components/student/FeedbackBanner'
 import type { Module, Lesson, LessonProgress } from '@/types'
 
 export default async function Dashboard() {
@@ -10,10 +12,15 @@ export default async function Dashboard() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
-  const [{ data: profile }, { data: modules }, { data: progress }] = await Promise.all([
+  const [{ data: profile }, { data: modules }, { data: progress }, { data: reviewedSubmissions }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase.from('modules').select('*, lessons(*)').eq('published', true).order('order_index'),
     supabase.from('lesson_progress').select('*').eq('user_id', user.id),
+    supabase
+      .from('submissions')
+      .select('*, exercise:exercises(title, lesson:lessons(title, slug))')
+      .eq('user_id', user.id)
+      .eq('status', 'reviewed'),
   ])
 
   const progressMap = new Map((progress || []).map((p: LessonProgress) => [p.lesson_id, p]))
@@ -28,6 +35,13 @@ export default async function Dashboard() {
   if (completedCount >= 3) badges.push({ emoji: '☀️', name: 'Cazador de luz', desc: '3 lecciones completadas' })
   if (completedCount >= 6) badges.push({ emoji: '🏙️', name: 'Alma callejera', desc: '6 lecciones completadas' })
   if (completedCount >= totalCount && totalCount > 0) badges.push({ emoji: '🎞️', name: 'El ojo curioso', desc: 'Curso completado' })
+
+  // Items para el banner de feedback
+  const feedbackItems = (reviewedSubmissions || []).map((s: any) => ({
+    lessonSlug: s.exercise?.lesson?.slug || '',
+    lessonTitle: s.exercise?.lesson?.title || '',
+    exerciseTitle: s.exercise?.title || '',
+  })).filter((item: any) => item.lessonSlug)
 
   function getLessonStatus(lessonId: number, globalIdx: number) {
     const p = progressMap.get(lessonId)
@@ -54,6 +68,12 @@ export default async function Dashboard() {
       <main style={{ maxWidth: '860px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
 
         <DashboardClient showOnboarding={!profile?.onboarding_completed} />
+
+        {/* Banner de feedback — solo aparece si hay correcciones nuevas */}
+        <FeedbackBanner
+          count={feedbackItems.length}
+          items={feedbackItems}
+        />
 
         {/* Hero */}
         <div className="fade-up" style={{ marginBottom: '2.5rem' }}>

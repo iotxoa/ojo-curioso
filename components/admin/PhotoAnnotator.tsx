@@ -329,7 +329,7 @@ export function PhotoAnnotator({ imageUrl, imageIndex, submissionId, existingAnn
         }
         .ann-canvas {
           display: block; width: 100%; height: auto;
-        }
+        }git diff components\admin\PhotoAnnotator.tsx
         .ann-footer {
           padding: 12px 16px; background: #1A1208;
           border-top: 1px solid rgba(196,151,90,0.15);
