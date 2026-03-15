@@ -223,6 +223,41 @@ function AuthorBlock({ b }: { b: any }) {
   )
 }
 
+// Grid visual para tipos de plano, ángulos, técnicas — imagen + nombre + descripción
+function VisualGridBlock({ b }: { b: any }) {
+  const cols = b.cols || 3
+  return (
+    <div style={{ margin: '2rem 0' }}>
+      {b.label && <p className="accent-label" style={{ marginBottom: '1rem' }}>{b.label}</p>}
+      {b.title && <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: '1.25rem' }}>{b.title}</h3>}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${cols}, 1fr)`,
+        gap: '1rem',
+      }}>
+        {(b.items || []).map((item: any, i: number) => (
+          <div key={i} style={{
+            background: 'var(--bg-card)',
+            border: '0.5px solid var(--border)',
+            borderRadius: '8px',
+            overflow: 'hidden',
+          }}>
+            {item.src && (
+              item.src.match(/\.(mp4|m4v|webm|mov)(\?|$)/i)
+                ? <video src={item.src} muted loop autoPlay playsInline style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }} />
+                : <img src={item.src} alt={item.name || ''} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }} />
+            )}
+            <div style={{ padding: '0.75rem' }}>
+              <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{item.name}</p>
+              {item.desc && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{item.desc}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function CaseStudyBlock({ b }: { b: any }) {
   const [expanded, setExpanded] = useState(false)
   return (
@@ -322,6 +357,7 @@ function ContentRenderer({ blocks }: { blocks: ExtBlock[] }) {
         )
         if (block.type === 'author') return <div key={i} {...anchor}><AuthorBlock b={block} /></div>
         if (block.type === 'case_study') return <div key={i} {...anchor}><CaseStudyBlock b={block} /></div>
+        if (block.type === 'visual_grid') return <div key={i}><VisualGridBlock b={block} /></div>
         if (block.type === 'video') return <div key={i} {...anchor}><VideoBlock src={(block as any).src} title={(block as any).title} description={(block as any).description} /></div>
         if (block.type === 'timeline') return <div key={i} {...anchor}><TimelineBlock title={(block as any).title} items={(block as any).items} /></div>
         if (block.type === 'fact') return (
