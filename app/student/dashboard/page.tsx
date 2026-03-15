@@ -44,6 +44,7 @@ export default async function Dashboard() {
   })).filter((item: any) => item.lessonSlug)
 
   function getLessonStatus(lessonId: number, globalIdx: number) {
+    if (profile?.role === 'admin') return 'available'
     const p = progressMap.get(lessonId)
     if (p?.status === 'completed') return 'completed'
     if (globalIdx === 0) return 'available'
