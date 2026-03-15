@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronDown, ChevronUp, Clock, BookOpen, Play } from 'lucide-react'
@@ -223,36 +223,84 @@ function AuthorBlock({ b }: { b: any }) {
   )
 }
 
+// ─── Lightbox global ─────────────────────────────────────────────────────────
+function Lightbox({ src, alt, caption, onClose }: { src: string; alt?: string; caption?: string; onClose: () => void }) {
+  const isVideo = /\.(mp4|m4v|webm|mov)(\?|$)/i.test(src)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
+  }, [onClose])
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(6px)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: '1.5rem', cursor: 'zoom-out', animation: 'fadeUp 0.2s ease both',
+    }}>
+      <button onClick={onClose} style={{
+        position: 'absolute', top: '1.25rem', right: '1.25rem',
+        background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
+        width: '36px', height: '36px', cursor: 'pointer', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem',
+      }}>✕</button>
+      <div onClick={e => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '85vh', cursor: 'default' }}>
+        {isVideo
+          ? <video src={src} controls autoPlay style={{ maxWidth: '90vw', maxHeight: '80vh', borderRadius: '8px', display: 'block' }} />
+          : <img src={src} alt={alt || ''} style={{ maxWidth: '90vw', maxHeight: '80vh', borderRadius: '8px', display: 'block', objectFit: 'contain' }} />
+        }
+        {caption && <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', textAlign: 'center', marginTop: '0.75rem', fontStyle: 'italic' }}>{caption}</p>}
+      </div>
+    </div>
+  )
+}
+
+// Hook para gestionar el lightbox
+function useLightbox() {
+  const [item, setItem] = useState<{ src: string; alt?: string; caption?: string } | null>(null)
+  const open = (src: string, alt?: string, caption?: string) => setItem({ src, alt, caption })
+  const close = () => setItem(null)
+  return { item, open, close }
+}
+
+// Contexto del lightbox para que todos los bloques puedan abrirlo
+const LightboxContext = React.createContext<(src: string, alt?: string, caption?: string) => void>(() => {})
+
 // Grid visual para tipos de plano, ángulos, técnicas — imagen + nombre + descripción
 function VisualGridBlock({ b }: { b: any }) {
+  const openLightbox = React.useContext(LightboxContext)
   const cols = b.cols || 3
   return (
     <div style={{ margin: '2rem 0' }}>
       {b.label && <p className="accent-label" style={{ marginBottom: '1rem' }}>{b.label}</p>}
       {b.title && <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: '1.25rem' }}>{b.title}</h3>}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${cols}, 1fr)`,
-        gap: '1rem',
-      }}>
-        {(b.items || []).map((item: any, i: number) => (
-          <div key={i} style={{
-            background: 'var(--bg-card)',
-            border: '0.5px solid var(--border)',
-            borderRadius: '8px',
-            overflow: 'hidden',
-          }}>
-            {item.src && (
-              item.src.match(/\.(mp4|m4v|webm|mov)(\?|$)/i)
-                ? <video src={item.src} muted loop autoPlay playsInline style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }} />
-                : <img src={item.src} alt={item.name || ''} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }} />
-            )}
-            <div style={{ padding: '0.75rem' }}>
-              <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{item.name}</p>
-              {item.desc && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{item.desc}</p>}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '0.75rem' }}>
+        {(b.items || []).map((item: any, i: number) => {
+          const isVideo = item.src && /\.(mp4|m4v|webm|mov)(\?|$)/i.test(item.src)
+          return (
+            <div key={i} style={{
+              background: 'var(--bg-card)', border: '0.5px solid var(--border)',
+              borderRadius: '8px', overflow: 'hidden', cursor: item.src ? 'zoom-in' : 'default',
+            }}
+              onClick={() => item.src && openLightbox(item.src, item.name, item.desc)}
+            >
+              {item.src ? (
+                isVideo
+                  ? <video src={item.src} muted loop autoPlay playsInline style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block', pointerEvents: 'none' }} />
+                  : <img src={item.src} alt={item.name || ''} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
+              ) : (
+                <div style={{ width: '100%', aspectRatio: '4/3', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.5rem' }}>próximamente</p>
+                </div>
+              )}
+              <div style={{ padding: '0.6rem 0.75rem' }}>
+                <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: item.desc ? '0.2rem' : 0 }}>{item.name}</p>
+                {item.desc && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.45, margin: 0 }}>{item.desc}</p>}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
@@ -297,6 +345,7 @@ function CaseStudyBlock({ b }: { b: any }) {
 }
 
 function ContentRenderer({ blocks }: { blocks: ExtBlock[] }) {
+  const openLightbox = React.useContext(LightboxContext)
   return (
     <div className="lesson-body">
       {blocks.map((block, i) => {
@@ -319,7 +368,8 @@ function ContentRenderer({ blocks }: { blocks: ExtBlock[] }) {
           </div>
         )
         if (block.type === 'hero') return (
-          <div key={i} style={{ margin: '2.5rem -1.5rem', position: 'relative' }}>
+          <div key={i} style={{ margin: '2.5rem -1.5rem', position: 'relative', cursor: 'zoom-in' }}
+            onClick={() => openLightbox((block as any).src, (block as any).alt, (block as any).caption)}>
             <img src={(block as any).src} alt={(block as any).alt || ''} style={{ width: '100%', maxHeight: '480px', objectFit: 'cover', display: 'block' }} />
             {((block as any).caption || (block as any).credit) && (
               <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'right', padding: '0.4rem 1.5rem 0', fontStyle: 'italic' }}>
@@ -332,7 +382,8 @@ function ContentRenderer({ blocks }: { blocks: ExtBlock[] }) {
           const sizes: Record<string, string> = { small: '320px', medium: '560px', full: '100%' }
           const maxW = sizes[(block as any).size || 'medium'] || '560px'
           return (
-            <figure key={i} style={{ margin: '2rem auto', maxWidth: maxW }}>
+            <figure key={i} style={{ margin: '2rem auto', maxWidth: maxW, cursor: 'zoom-in' }}
+              onClick={() => openLightbox((block as any).src, (block as any).alt, (block as any).caption)}>
               <img src={(block as any).src} alt={(block as any).alt || ''} style={{ width: '100%', borderRadius: '6px', display: 'block' }} />
               {((block as any).caption || (block as any).credit) && (
                 <figcaption style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.5rem', fontStyle: 'italic', textAlign: 'center' }}>
@@ -346,7 +397,8 @@ function ContentRenderer({ blocks }: { blocks: ExtBlock[] }) {
           <div key={i} style={{ margin: '2rem 0' }}>
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((block as any).images?.length || 2, 3)}, 1fr)`, gap: '0.5rem' }}>
               {((block as any).images || []).map((img: any, ii: number) => (
-                <figure key={ii} style={{ margin: 0 }}>
+                <figure key={ii} style={{ margin: 0, cursor: 'zoom-in' }}
+                  onClick={() => openLightbox(img.src, img.alt, img.caption)}>
                   <img src={img.src} alt={img.alt || ''} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: '4px', display: 'block' }} />
                   {img.caption && <figcaption style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.3rem', fontStyle: 'italic', textAlign: 'center' }}>{img.caption}</figcaption>}
                 </figure>
@@ -433,6 +485,7 @@ export default function LessonClient({ lesson, questions, exercises, progress, q
   const router = useRouter()
   const blocks = (lesson.content || []) as ExtBlock[]
   const tocItems = buildToc(blocks)
+  const lb = useLightbox()
 
   async function markInProgress() {
     if (progress) return
@@ -445,7 +498,9 @@ export default function LessonClient({ lesson, questions, exercises, progress, q
   useState(() => { markInProgress() })
 
   return (
-    <main style={{ maxWidth: '760px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
+    <LightboxContext.Provider value={lb.open}>
+      {lb.item && <Lightbox src={lb.item.src} alt={lb.item.alt} caption={lb.item.caption} onClose={lb.close} />}
+      <main style={{ maxWidth: '760px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
       <Link href="/student/dashboard" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '2rem', transition: 'color 0.2s' }}>
         <ChevronLeft size={14} /> Volver al inicio
       </Link>
@@ -479,5 +534,6 @@ export default function LessonClient({ lesson, questions, exercises, progress, q
 
       <div style={{ height: '4rem' }} />
     </main>
+    </LightboxContext.Provider>
   )
 }
