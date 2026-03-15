@@ -87,8 +87,12 @@ function LessonToc({ items }: { items: { id: string; label: string }[] }) {
   )
 }
 
-function VideoBlock({ src, title, description }: { src: string; title?: string; description?: string }) {
+function VideoBlock({ src, title, description, poster }: { src: string; title?: string; description?: string; poster?: string }) {
   const [playing, setPlaying] = useState(false)
+
+  const isYoutube = /youtube\.com|youtu\.be/.test(src)
+  const isLocal = /\.(mp4|m4v|webm|mov|ogg)(\?|$)/i.test(src)
+
   const getEmbed = (url: string) => {
     const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
     return m ? `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=0` : url
@@ -97,7 +101,8 @@ function VideoBlock({ src, title, description }: { src: string; title?: string; 
     const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
     return m ? `https://img.youtube.com/vi/${m[1]}/maxresdefault.jpg` : null
   }
-  const thumb = getThumb(src)
+  const thumb = isYoutube ? getThumb(src) : (poster || null)
+
   return (
     <div style={{ margin: '2.5rem 0' }}>
       {title && (
@@ -107,27 +112,42 @@ function VideoBlock({ src, title, description }: { src: string; title?: string; 
           <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{title}</span>
         </div>
       )}
-      <div style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', background: '#000', aspectRatio: '16/9', cursor: playing ? 'default' : 'pointer' }}
-           onClick={() => !playing && setPlaying(true)}>
-        {!playing ? (
-          <>
-            {thumb && <img src={thumb} alt={title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75 }} />}
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 60%)' }}>
-              <div style={{ width: '64px', height: '64px', background: 'var(--accent)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
-                <Play size={24} fill="var(--bg-base)" color="var(--bg-base)" style={{ marginLeft: '3px' }} />
+
+      {/* Vídeo local — se reproduce inline sin click previo */}
+      {isLocal ? (
+        <div style={{ borderRadius: '10px', overflow: 'hidden', background: '#000', aspectRatio: '16/9' }}>
+          <video
+            src={src}
+            controls
+            poster={poster}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+          />
+        </div>
+      ) : (
+        /* YouTube — thumbnail con botón play */
+        <div style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', background: '#000', aspectRatio: '16/9', cursor: playing ? 'default' : 'pointer' }}
+             onClick={() => !playing && setPlaying(true)}>
+          {!playing ? (
+            <>
+              {thumb && <img src={thumb} alt={title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75 }} />}
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 60%)' }}>
+                <div style={{ width: '64px', height: '64px', background: 'var(--accent)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
+                  <Play size={24} fill="var(--bg-base)" color="var(--bg-base)" style={{ marginLeft: '3px' }} />
+                </div>
               </div>
-            </div>
-            {title && (
-              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '1rem', background: 'linear-gradient(transparent, rgba(0,0,0,0.65))' }}>
-                <p style={{ color: '#fff', fontSize: '0.875rem', margin: 0 }}>{title}</p>
-              </div>
-            )}
-          </>
-        ) : (
-          <iframe src={getEmbed(src)} title={title || 'Vídeo'} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} />
-        )}
-      </div>
+              {title && (
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '1rem', background: 'linear-gradient(transparent, rgba(0,0,0,0.65))' }}>
+                  <p style={{ color: '#fff', fontSize: '0.875rem', margin: 0 }}>{title}</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <iframe src={getEmbed(src)} title={title || 'Vídeo'} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} />
+          )}
+        </div>
+      )}
+
       {description && <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.6 }}>{description}</p>}
     </div>
   )
