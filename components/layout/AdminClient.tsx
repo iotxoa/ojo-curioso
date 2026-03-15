@@ -42,6 +42,9 @@ export default function AdminClient({ submissions, students }: { submissions: an
         <button style={tabStyle(tab === 'students')} onClick={() => setTab('students')}>
           Alumnos ({students.length})
         </button>
+        <a href="/admin/lecciones" style={{ ...tabStyle(false), textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+          Editar lecciones
+        </a>
       </div>
 
       {/* ENTREGAS */}
