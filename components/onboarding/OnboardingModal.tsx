@@ -14,18 +14,18 @@ const steps = [
       <div className="onboarding-carta">
         <p className="onboarding-saludo">Aita,</p>
         <p>
-          Llevas años con la cámara cerca pero sin atreverte del todo. Sé que la fotografía te llama,
-          porque te he visto pararte a mirar la luz de la tarde, o buscar el ángulo exacto antes de
-          hacer una foto con el móvil.
+          Después del fiasco de las lecciones en papel, llega la nueva versión de las lecciones en digital. Ponte la cámara al cuello,
+          porque aunque las fotos con el móvil están bien, es momento de sar un salto cualitativo
+          con este curso MUY accesible.
         </p>
         <p>
-          Este curso lo he hecho para ti. No es genérico, no es de internet. Cada lección la he
-          pensado sabiendo cómo eres, qué te gusta y qué creo que te va a sorprender.
+          Por supuesto, lo he hecho para ti. No es genérico, no es de internet. Cada lección la he
+          pensado sabiendo qué te interesa o te gusta y qué creo que te va a sorprender.
         </p>
         <p>
           No hay prisa. No hay notas. Solo hay un ojo curioso — el tuyo — y una cámara esperando.
         </p>
-        <p className="onboarding-firma">Con todo el cariño,<br /><em>tu hija</em></p>
+        <p className="onboarding-firma">Con todo el cariño,<br /><em>tu señora hija</em></p>
       </div>
     ),
     titulo: null,
@@ -46,7 +46,7 @@ const steps = [
           <span className="onboarding-numero">02</span>
           <div>
             <strong>Responde el test</strong>
-            <p>Al final de cada lección hay unas preguntas breves. No son un examen — son para asentar lo aprendido.</p>
+            <p>Al final de cada lección hay unas preguntas breves. No son un examen, bueno, solo un poco — son para asentar lo aprendido.</p>
           </div>
         </div>
         <div className="onboarding-paso">
